@@ -1,50 +1,49 @@
-name: CI
+name: "CI/CD"
 
 on:
   push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+    branches: [master]
+
+defaults:
+  run:
+    shell: bash
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        string-value: ["alpha", "beta", "gamma"]
-    outputs:
-      build-results: ${{ steps.upload.outputs.build-results }}
+        kv:
+          - key: one
+            val: ONE
+          - key: two
+            val: TWO
+          - key: three
+            val: THREE
 
     steps:
-      - uses: actions/checkout@v2
-      - name: Process string value
-        run: echo "String value ${{ matrix.string-value }} processed" > result.txt
-      - name: Upload result file
-        id: upload
-        uses: actions/upload-artifact@v2
-        with:
-          name: string-result-${{ matrix.string-value }}
-          path: result.txt
-      - name: Set output
-        id: set-output
-        run: echo "::set-output name=build-results::${{ matrix.string-value }}"
-
-  gather-results:
-    needs: build
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        string-value: ${{ fromJson(needs.build.outputs.build-results) }}
-
-    steps:
-      - name: Download result
-        uses: actions/download-artifact@v2
-        with:
-          name: string-result-${{ matrix.string-value }}
-          path: ./artifacts
-      - name: Display result
+      - id: one
         run: |
-          echo "String value processed for ${{ matrix.string-value }}:"
-          cat ./artifacts/result.txt
-      - name: Deploy (example step)
-        run: echo "Deploying application with the aggregated results for ${{ matrix.string-value }}..."
+          mkdir -p pipelines
+          echo ${{ matrix.kv.val }} >> outputs/${{ matrix.kv.key }}.txt
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: outputs
+          path: outputs/*.txt
+
+
+  getval:
+    runs-on: ubuntu-latest
+    needs: [test]
+    steps:
+      - uses: actions/checkout@v3
+      - name: Load outputs
+        uses: actions/download-artifact@v3
+        with:
+          name: outputs
+          path: outputs
+
+      - run: |
+          ls outputs
+          cat outputs/*.txt
