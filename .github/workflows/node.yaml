@@ -12,31 +12,39 @@ jobs:
     strategy:
       matrix:
         string-value: ["alpha", "beta", "gamma"]
+    outputs:
+      build-results: ${{ steps.upload.outputs.build-results }}
 
     steps:
       - uses: actions/checkout@v2
       - name: Process string value
-        run: echo "String value ${{ matrix.string-value }} processed" >> result.txt
+        run: echo "String value ${{ matrix.string-value }} processed" > result.txt
       - name: Upload result file
+        id: upload
         uses: actions/upload-artifact@v2
         with:
           name: string-result-${{ matrix.string-value }}
           path: result.txt
+      - name: Set output
+        id: set-output
+        run: echo "::set-output name=build-results::${{ matrix.string-value }}"
 
   gather-results:
     needs: build
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        string-value: ${{ fromJson(needs.build.outputs.build-results) }}
+
     steps:
-      - name: Download all result files
+      - name: Download result
         uses: actions/download-artifact@v2
         with:
-          name: string-result-*
+          name: string-result-${{ matrix.string-value }}
           path: ./artifacts
-      - name: Aggregate results
+      - name: Display result
         run: |
-          echo "String values processed in build:"
-          for file in ./artifacts/*; do
-            cat $file
-          done
+          echo "String value processed for ${{ matrix.string-value }}:"
+          cat ./artifacts/result.txt
       - name: Deploy (example step)
-        run: echo "Deploying application with the aggregated results..."
+        run: echo "Deploying application with the aggregated results for ${{ matrix.string-value }}..."
