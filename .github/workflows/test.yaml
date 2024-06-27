@@ -23,9 +23,9 @@ jobs:
         id: set-matrix
         run: |
           INPUT="${{ github.event.inputs.environments }}"
-          INPUT="${INPUT%,}"
-          JSON_ARRAY="\"${INPUT//, /\",\"}\""
-          echo "matrix=[$JSON_ARRAY]" >> $GITHUB_OUTPUT
+          INPUT="${INPUT%,}"  # Remove trailing comma if present
+          JSON_ARRAY="\"${INPUT//, /\",\"}\""  # Format as JSON array
+          echo "matrix=[$JSON_ARRAY]" >> $GITHUB_OUTPUT  # Use modern output method
 
   build:
     needs: setup
@@ -35,7 +35,7 @@ jobs:
       matrix:
         environment: ${{ fromJson(needs.setup.outputs.matrix) }}
     outputs:
-        successful-envs: ${{ steps.filter-success.outputs.successful-envs }}        
+      successful-envs: ${{ steps.collect-success.outputs.successful-envs }}
     steps:
       - name: Check echo from matrix
         run: echo "${{ matrix.environment }}"
@@ -45,12 +45,13 @@ jobs:
             echo "${{ matrix.environment }}" >> successful-envs.txt
           fi
       - name: Collect Successful Environments
-        id: filter-success
+        id: collect-success
         run: |
           if [ -f successful-envs.txt ]; then
             SUCCESS_ENVS=$(cat successful-envs.txt | tr '\n' ',' | sed 's/,$//')
             echo "successful-envs=$SUCCESS_ENVS" >> $GITHUB_OUTPUT
-          fi
+          else
+            echo "successful-envs=" >> $GITHUB_OUTPUT  # Ensure output is always set
 
   deploy:
     needs: build
@@ -64,3 +65,4 @@ jobs:
       - name: Deploy for Successful Environments
         run: |
           echo "Deploying to environment: ${{ matrix.environment }}"
+          # Insert deployment commands here
