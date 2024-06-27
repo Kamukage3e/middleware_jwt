@@ -48,11 +48,12 @@ jobs:
         id: collect-success
         run: |
           if [ -f successful-envs.txt ]; then
-            SUCCESS_ENVS=$(cat successful-envs.txt | tr '\n' ',' | sed 's/,$//')
-            echo "successful-envs=$SUCCESS_ENVS" >> $GITHUB_OUTPUT
+            SUCCESS_ENVS=$(cat successful-envs.txt | tr '\n' ' ' | xargs | sed 's/ /", "/g')
+            echo "successful-envs=\"[$SUCCESS_ENVS]\"" >> $GITHUB_OUTPUT
           else
-            echo "successful-envs=" >> $GITHUB_OUTPUT  # Ensure output is always set
-          fi
+            echo "successful-envs=\"[]\"" >> $GITHUB_OUTPUT
+          fi 
+
   deploy:
     needs: build
     runs-on: ${{ inputs.runner }}
@@ -60,7 +61,7 @@ jobs:
       fail-fast: false
       matrix:
         environment: ${{ fromJson(needs.build.outputs.successful-envs) }}
-    if: ${{ needs.build.outputs.successful-envs != '' }}
+    if: ${{ fromJson(needs.build.outputs.successful-envs) != '[]' }}
     steps:
       - name: Deploy for Successful Environments
         run: |
