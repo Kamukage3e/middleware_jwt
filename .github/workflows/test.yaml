@@ -34,32 +34,27 @@ jobs:
     needs: setup
     runs-on: ${{ inputs.runner }}
     strategy:
-        fail-fast: false
-        matrix:
-          environment: ${{ fromJson(needs.setup.outputs.matrix) }}
+      fail-fast: false
+      matrix:
+        environment: ${{ fromJson(needs.setup.outputs.matrix) }}
     outputs:
-        successful-envs: ${{ join(steps.collect-envs.outputs.envs, ',') }}
+        successful-envs: ${{ steps.filter-success.outputs.successful-envs }}
     steps:
-      - name: Check echo from matrix
-        run: echo "${{ matrix.environment }}"
-
-      - name: Simulate Task Success
-        id: task
-        run: |
+        - name: Check echo from matrix
+          run: echo "${{ matrix.environment }}"
+        - name: Simulate Task Success
+          id: simulate-task
+          run: |
             if [ "${{ matrix.environment }}" == "mona" ] || [ "${{ matrix.environment }}" == "sona" ]; then
-            echo "${{ matrix.environment }}" >> $GITHUB_ENV/successful-envs.txt
-            echo "::set-output name=env::${{ matrix.environment }}"
+              echo "${{ matrix.environment }}"
+              echo "success=true" >> $GITHUB_ENV
             else
-            echo "::set-output name=env::"
-        
-      - name: Collect successful environments
-        id: collect-envs
-        run: |
-            if [ -f $GITHUB_ENV/successful-envs.txt ]; then
-            ENV_OUTPUT=$(cat $GITHUB_ENV/successful-envs.txt | tr '\n' ',')
-            echo "::set-output name=envs::$ENV_OUTPUT"
-            fi
-
+              echo "success=false" >> $GITHUB_ENV
+        - name: Set successful environments
+          id: filter-success
+          if: env.success == 'true'
+          run: echo "successful-envs=${{ matrix.environment }}" >> $GITHUB_ENV
+  
 
   deploy:
     needs: build
