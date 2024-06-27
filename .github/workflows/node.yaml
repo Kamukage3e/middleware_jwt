@@ -18,7 +18,8 @@ jobs:
         run: echo "${{ matrix.option }} processed" > $GITHUB_WORKSPACE/shared/result-${{ matrix.option }}.txt
       - name: List shared directory contents
         run: ls -l $GITHUB_WORKSPACE/shared
-      - name: Debug: Show current job's result
+        
+      - name: Show current job result
         run: cat $GITHUB_WORKSPACE/shared/result-${{ matrix.option }}.txt
 
   gather-results:
