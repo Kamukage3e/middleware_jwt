@@ -50,6 +50,7 @@ jobs:
               echo "success=true" >> $GITHUB_ENV
             else
               echo "success=false" >> $GITHUB_ENV
+            fi
         - name: Set successful environments
           id: filter-success
           if: env.success == 'true'
