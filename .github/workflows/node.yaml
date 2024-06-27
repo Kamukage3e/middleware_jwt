@@ -40,11 +40,10 @@ jobs:
         run: |
           results=$(ls ./artifacts/result-* | xargs cat | jq -R -s -c 'split("\n") | map(select(. != ""))')
           echo "results=$results" >> $GITHUB_ENV
-      - name: Set aggregated output
-        run: echo "::set-output name=results::${{ env.results }}"
+          echo "::set-output name=results::$results"
 
   finally:
-    needs: [parallel, gather-results]
+    needs: gather-results
     runs-on: ubuntu-latest
     strategy:
       matrix:
