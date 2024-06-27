@@ -21,16 +21,27 @@ jobs:
         with:
           name: result-${{ matrix.option }}
           path: result-${{ matrix.option }}.txt
+      - name: Verify upload
+        run: ls -l result-${{ matrix.option }}.txt
 
   gather-results:
     needs: parallel
     runs-on: ubuntu-latest
     steps:
-      - name: Download all results
+      - name: Download result a
         uses: actions/download-artifact@v2
         with:
-          name: result-*
+          name: result-a
           path: ./artifacts
+      - name: Download result b
+        uses: actions/download-artifact@v2
+        with:
+          name: result-b
+          path: ./artifacts
+      - name: Verify download result a
+        run: ls -l ./artifacts/result-a.txt
+      - name: Verify download result b
+        run: ls -l ./artifacts/result-b.txt
       - name: Aggregate results
         run: |
           echo "Aggregated results:"
