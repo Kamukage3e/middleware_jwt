@@ -11,36 +11,30 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [12, 14, 16]
+        string-value: ["alpha", "beta", "gamma"]
 
     steps:
       - uses: actions/checkout@v2
-      - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v2
-        with:
-          node-version: ${{ matrix.node-version }}
-      - run: npm install
-      - run: npm test
-      - name: Save Node.js version
-        run: echo "Node.js ${{ matrix.node-version }} build completed" >> version.txt
-      - name: Upload version file
+      - name: Process string value
+        run: echo "String value ${{ matrix.string-value }} processed" >> result.txt
+      - name: Upload result file
         uses: actions/upload-artifact@v2
         with:
-          name: node-version-${{ matrix.node-version }}
-          path: version.txt
+          name: string-result-${{ matrix.string-value }}
+          path: result.txt
 
   gather-results:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - name: Download all version files
+      - name: Download all result files
         uses: actions/download-artifact@v2
         with:
-          name: node-version-*
+          name: string-result-*
           path: ./artifacts
       - name: Aggregate results
         run: |
-          echo "Node.js versions used in build:"
+          echo "String values processed in build:"
           for file in ./artifacts/*; do
             cat $file
           done
