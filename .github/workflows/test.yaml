@@ -22,41 +22,44 @@ jobs:
       - name: Set matrix from input
         id: set-matrix
         run: |
-          INPUT="${{ github.event.inputs.environments}}"
+          INPUT="${{ github.event.inputs.environments }}"
           # Remove trailing comma if present
           INPUT="${INPUT%,}"
           # Replace commas with '","' and wrap each element with quotes
           JSON_ARRAY="\"${INPUT//, /\",\"}\""
           echo "matrix=[$JSON_ARRAY]" >> $GITHUB_OUTPUT
 
+
   build:
     needs: setup
     runs-on: ${{ inputs.runner }}
     strategy:
-      fail-fast: false
-      matrix:
-        environment: ${{ fromJson(needs.setup.outputs.matrix) }}
+        fail-fast: false
+        matrix:
+          environment: ${{ fromJson(needs.setup.outputs.matrix) }}
     outputs:
-      successful-envs: ${{ steps.set-successful-envs.outputs.successful-envs }}
+        successful-envs: ${{ join(steps.collect-envs.outputs.envs, ',') }}
     steps:
       - name: Check echo from matrix
         run: echo "${{ matrix.environment }}"
+
       - name: Simulate Task Success
-        id: simulate-task
+        id: task
         run: |
-          if [ "${{ matrix.environment }}" == "mona" ] || [ "${{ matrix.environment }}" == "sona" ]; then
-            echo "${{ matrix.environment }}" >> successful-envs.txt
-          else
-            exit 1
-          fi
-      - name: Gather Successful Environments
-        id: set-successful-envs
-        if: success()
+            if [ "${{ matrix.environment }}" == "mona" ] || [ "${{ matrix.environment }}" == "sona" ]; then
+            echo "${{ matrix.environment }}" >> $GITHUB_ENV/successful-envs.txt
+            echo "::set-output name=env::${{ matrix.environment }}"
+            else
+            echo "::set-output name=env::"
+        
+      - name: Collect successful environments
+        id: collect-envs
         run: |
-          if [ -f successful-envs.txt ]; then
-            SUCCESS_ENVS=$(cat successful-envs.txt | tr '\n' ',' | sed 's/,$//')
-            echo "successful-envs=$SUCCESS_ENVS" >> $GITHUB_ENV
-          fi
+            if [ -f $GITHUB_ENV/successful-envs.txt ]; then
+            ENV_OUTPUT=$(cat $GITHUB_ENV/successful-envs.txt | tr '\n' ',')
+            echo "::set-output name=envs::$ENV_OUTPUT"
+            fi
+
 
   deploy:
     needs: build
@@ -65,9 +68,10 @@ jobs:
       fail-fast: false
       matrix:
         environment: ${{ fromJson(needs.build.outputs.successful-envs) }}
-    if: needs.build.outputs.successful-envs != ''
+    if: ${{ fromJson(needs.build.outputs.successful-envs) }}
     steps:
       - name: Deploy for Successful Environments
         run: |
           echo "Deploying to environment: ${{ matrix.environment }}"
           # Insert deployment commands here
+
