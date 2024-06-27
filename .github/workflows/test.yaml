@@ -48,12 +48,9 @@ jobs:
             if [ "${{ matrix.environment }}" == "mona" ] || [ "${{ matrix.environment }}" == "sona" ]; then
               echo "${{ matrix.environment }}"
               echo "success=true" >> $GITHUB_ENV
-            else
-              echo "success=false" >> $GITHUB_ENV
             fi
         - name: Set successful environments
           id: filter-success
-          if: env.success == 'true'
           run: echo "successful-envs=${{ matrix.environment }}" >> $GITHUB_ENV
   
 
