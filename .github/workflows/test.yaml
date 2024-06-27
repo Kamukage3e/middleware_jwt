@@ -23,9 +23,7 @@ jobs:
         id: set-matrix
         run: |
           INPUT="${{ github.event.inputs.environments }}"
-          # Remove trailing comma if present
           INPUT="${INPUT%,}"
-          # Replace commas with '","' and wrap each element with quotes
           JSON_ARRAY="\"${INPUT//, /\",\"}\""
           echo "matrix=[$JSON_ARRAY]" >> $GITHUB_OUTPUT
 
@@ -37,27 +35,21 @@ jobs:
       matrix:
         environment: ${{ fromJson(needs.setup.outputs.matrix) }}
     outputs:
-      successful-envs: ${{ steps.collect-success.outputs.successful-envs }}
+        successful-envs: ${{ steps.filter-success.outputs.successful-envs }}        
     steps:
       - name: Check echo from matrix
         run: echo "${{ matrix.environment }}"
       - name: Simulate Task Success
-        id: simulate-task
         run: |
-          if [ "${{ matrix.environment }}" == "mona" ] || [ "${{ matrix.environment }}" == "sona" ]; then
+          if [[ "${{ matrix.environment }}" == "mona" || "${{ matrix.environment }}" == "sona" ]]; then
             echo "${{ matrix.environment }}" >> successful-envs.txt
-          else
-            exit 1
           fi
       - name: Collect Successful Environments
-        id: collect-success
-        if: success()
+        id: filter-success
         run: |
           if [ -f successful-envs.txt ]; then
             SUCCESS_ENVS=$(cat successful-envs.txt | tr '\n' ',' | sed 's/,$//')
-            echo "::set-output name=successful-envs::$SUCCESS_ENVS"
-          else
-            echo "::set-output name=successful-envs::"
+            echo "successful-envs=$SUCCESS_ENVS" >> $GITHUB_OUTPUT
           fi
 
   deploy:
@@ -72,4 +64,3 @@ jobs:
       - name: Deploy for Successful Environments
         run: |
           echo "Deploying to environment: ${{ matrix.environment }}"
-          # Insert deployment commands here
