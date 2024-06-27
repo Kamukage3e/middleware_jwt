@@ -11,28 +11,30 @@ jobs:
       fail-fast: true
       matrix:
         option: ["a", "b"]
+
     steps:
-      - name: Create shared directory
-        run: mkdir -p $GITHUB_WORKSPACE/shared
-      - name: Process string value
-        run: echo "${{ matrix.option }} processed" > $GITHUB_WORKSPACE/shared/result-${{ matrix.option }}.txt
-      - name: List shared directory contents
-        run: ls -l $GITHUB_WORKSPACE/shared
-        
-      - name: Show current job result
-        run: cat $GITHUB_WORKSPACE/shared/result-${{ matrix.option }}.txt
+      - uses: actions/checkout@v3
+      - name: Create output
+        run: echo "${{ matrix.option }} processed" > result-${{ matrix.option }}.txt
+      - name: Upload result file
+        uses: actions/upload-artifact@v2
+        with:
+          name: result-${{ matrix.option }}
+          path: result-${{ matrix.option }}.txt
 
   gather-results:
     needs: parallel
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-      - name: List shared directory contents
-        run: ls -l $GITHUB_WORKSPACE/shared
+      - name: Download all results
+        uses: actions/download-artifact@v2
+        with:
+          name: result-*
+          path: ./artifacts
       - name: Aggregate results
         run: |
-          for file in $GITHUB_WORKSPACE/shared/*; do
+          echo "Aggregated results:"
+          for file in ./artifacts/*; do
             echo "Content of $file:"
             cat $file
           done
