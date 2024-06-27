@@ -11,45 +11,29 @@ jobs:
       fail-fast: true
       matrix:
         option: ["a", "b"]
-    outputs:
-      result: ${{ steps.set-output.outputs.result }}
     steps:
-      - name: Create output
-        id: create-output
-        run: echo "${{ matrix.option }}" > result.txt
-      - name: Upload result file
-        uses: actions/upload-artifact@v2
-        with:
-          name: result-${{ matrix.option }}
-          path: result.txt
-      - name: Set output
-        id: set-output
-        run: echo "::set-output name=result::${{ matrix.option }}"
+      - name: Create shared directory
+        run: mkdir -p $GITHUB_WORKSPACE/shared
+      - name: Process string value
+        run: echo "${{ matrix.option }} processed" > $GITHUB_WORKSPACE/shared/result-${{ matrix.option }}.txt
+      - name: List shared directory contents
+        run: ls -l $GITHUB_WORKSPACE/shared
+      - name: Debug: Show current job's result
+        run: cat $GITHUB_WORKSPACE/shared/result-${{ matrix.option }}.txt
 
   gather-results:
     needs: parallel
     runs-on: ubuntu-latest
     steps:
-      - name: Download all results
-        uses: actions/download-artifact@v2
-        with:
-          name: result-*
-          path: ./artifacts
-      - name: Aggregate results
-        id: aggregate-results
-        run: |
-          results=$(ls ./artifacts/result-* | xargs cat | jq -R -s -c 'split("\n") | map(select(. != ""))')
-          echo "results=$results" >> $GITHUB_ENV
-          echo "::set-output name=results::$results"
-
-  finally:
-    needs: gather-results
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        option: ${{ fromJson(needs.gather-results.outputs.results) }}
-    steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v3
-      - name: Debug
-        run: echo '${{ matrix.option }}'
+      - name: List shared directory contents
+        run: ls -l $GITHUB_WORKSPACE/shared
+      - name: Aggregate results
+        run: |
+          for file in $GITHUB_WORKSPACE/shared/*; do
+            echo "Content of $file:"
+            cat $file
+          done
+      - name: Deploy (example step)
+        run: echo "Deploying application with the aggregated results..."
