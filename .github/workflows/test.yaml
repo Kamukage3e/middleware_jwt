@@ -42,16 +42,16 @@ jobs:
       - name: Simulate Task Success
         run: |
           if [[ "${{ matrix.environment }}" == "mona" || "${{ matrix.environment }}" == "sona" ]]; then
-            echo "${{ matrix.environment }}" >> successful-envs.txt
+            echo "\"${{ matrix.environment }}\"," >> successful-envs.txt
           fi
       - name: Collect Successful Environments
         id: collect-success
         run: |
           if [ -f successful-envs.txt ]; then
-            SUCCESS_ENVS=$(cat successful-envs.txt | tr '\n' ' ' | xargs | sed 's/ /", "/g')
-            echo "successful-envs=\"[$SUCCESS_ENVS]\"" >> $GITHUB_OUTPUT
+            SUCCESS_ENVS=$(cat successful-envs.txt | sed 's/,$//')  # Remove the last comma
+            echo "successful-envs=[$SUCCESS_ENVS]" >> $GITHUB_OUTPUT
           else
-            echo "successful-envs=\"[]\"" >> $GITHUB_OUTPUT
+            echo "successful-envs=[]" >> $GITHUB_OUTPUT
           fi 
 
   deploy:
