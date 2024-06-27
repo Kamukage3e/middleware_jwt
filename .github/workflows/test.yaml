@@ -52,7 +52,7 @@ jobs:
             echo "successful-envs=$SUCCESS_ENVS" >> $GITHUB_OUTPUT
           else
             echo "successful-envs=" >> $GITHUB_OUTPUT  # Ensure output is always set
-
+          fi
   deploy:
     needs: build
     runs-on: ${{ inputs.runner }}
