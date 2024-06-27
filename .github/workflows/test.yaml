@@ -1,1 +1,80 @@
-name: 
+name: Parallel workflow for testing purposes
+
+on:
+  workflow_dispatch:
+    inputs:
+        environment:
+            required: true
+            description: Environment for testing purpose
+            type: string
+        runner:
+            required: true
+            description: github actions runner
+            type: string
+            default: ubuntu-22.04
+
+jobs:
+    setup:
+        runs-on: ${{ inputs.runner }}
+        outputs:
+            matrix: ${{ steps.set-matrix.outputs.matrix}}
+        steps:
+            - name: Set matrix from input
+              id: set-matrix
+              run: |
+                INPUT="${{ github.event.inputs.environment}}"
+                # Remove trailing comma if present
+                INPUT="${INPUT%,}"
+                # Replace commas with '","' and wrap each element with quotes
+                JSON_ARRAY="\"${INPUT//, /\",\"}\""
+                echo "matrix=[$JSON_ARRAY]" >> $GITHUB_OUTPUT
+
+    build:
+        needs: setup
+        runs-on: ${{ inputs.runner}}
+        strategy:
+            fail-fast: false
+            matrix:
+                environment: ${{ fromJson(needs.setup.outputs.matrix)}}
+        outputs: 
+            successful-envs: ${{ steps.set-successful-envs.outputs.successful-envs}}                
+        steps:
+          - name: Check echo from matrix
+            run: echo "${{ matrix.environment }}"          
+          - name: Simulate Task Success
+            id: simulate-task
+            run: |
+              if [ "${{ matrix.environment }}" == "mona" ] || [ "${{ matrix.environment }}" == "sona" ]; then
+                echo "${{ matrix.environment }}" >> successful-envs.txt
+              else
+                exit 1
+              fi
+          - name: Gather Successful Environments
+            id: set-successful-envs
+            if: success()
+            run: |
+              if [ -f successful-envs.txt ]; then
+                SUCCESS_ENVS=$(cat successful-envs.txt | tr '\n' ',' | sed 's/,$//')
+                echo "successful-envs=$SUCCESS_ENVS" >> $GITHUB_ENV
+              fi
+              
+              
+    deploy:
+        needs: build
+        if: needs.build.outputs.successful-envs != ''
+        runs-on: ${{ inputs.runner }}
+        strategy:
+            fail-fast: false
+            matrix:
+                environment: ${{ fromJson(needs.build.outputs.successful-envs)}}
+        steps:
+            - name:
+              run: |
+                echo "Deploying to environment ${{ matrix.environment }}"
+
+
+
+          
+
+
+
