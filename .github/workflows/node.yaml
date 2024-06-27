@@ -12,7 +12,7 @@ jobs:
       matrix:
         option: ["a", "b"]
     outputs:
-      artifacts: ${{ steps.collect-artifacts.outputs.artifacts }}
+      results: ${{ steps.collect-artifacts.outputs.results }}
     steps:
       - uses: actions/checkout@v3
       - name: Create output
@@ -24,14 +24,14 @@ jobs:
           path: result-${{ matrix.option }}.txt
       - name: Collect artifact names
         id: collect-artifacts
-        run: echo "::set-output name=artifacts::${{ toJson(matrix.option) }}"
+        run: echo "::set-output name=results::${{ matrix.option }}"
 
   gather-results:
     needs: parallel
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        option: ["a", "b"]  # Using static values for illustration, change dynamically if needed
+        option: ${{ fromJson(needs.parallel.outputs.results) }}
 
     steps:
       - name: Download result
