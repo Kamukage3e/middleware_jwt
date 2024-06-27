@@ -11,7 +11,8 @@ jobs:
       fail-fast: true
       matrix:
         option: ["a", "b"]
-
+    outputs:
+      artifacts: ${{ steps.collect-artifacts.outputs.artifacts }}
     steps:
       - uses: actions/checkout@v3
       - name: Create output
@@ -21,33 +22,39 @@ jobs:
         with:
           name: result-${{ matrix.option }}
           path: result-${{ matrix.option }}.txt
-      - name: Verify upload
-        run: ls -l result-${{ matrix.option }}.txt
+      - name: Collect artifact names
+        id: collect-artifacts
+        run: echo "::set-output name=artifacts::${{ toJson(matrix.option) }}"
 
   gather-results:
     needs: parallel
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        option: ["a", "b"]  # Using static values for illustration, change dynamically if needed
+
     steps:
-      - name: Download result a
+      - name: Download result
         uses: actions/download-artifact@v2
         with:
-          name: result-a
+          name: result-${{ matrix.option }}
           path: ./artifacts
-      - name: Download result b
-        uses: actions/download-artifact@v2
-        with:
-          name: result-b
-          path: ./artifacts
-      - name: Verify download result a
-        run: ls -l ./artifacts/result-a.txt
-      - name: Verify download result b
-        run: ls -l ./artifacts/result-b.txt
+      - name: Verify download result
+        run: ls -l ./artifacts/result-${{ matrix.option }}.txt
+      - name: Show result
+        run: |
+          echo "Content of result-${{ matrix.option }}.txt:"
+          cat ./artifacts/result-${{ matrix.option }}.txt
+
+  final-aggregation:
+    needs: gather-results
+    runs-on: ubuntu-latest
+    steps:
       - name: Aggregate results
         run: |
           echo "Aggregated results:"
           for file in ./artifacts/*; do
             echo "Content of $file:"
             cat $file
-          done
       - name: Deploy (example step)
         run: echo "Deploying application with the aggregated results..."
