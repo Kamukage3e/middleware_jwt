@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [12, 14, 16]
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v2
+        with:
+          node-version: ${{ matrix.node-version }}
+      - run: npm install
+      - run: npm test
+      - name: Save Node.js version
+        run: echo "Node.js ${{ matrix.node-version }} build completed" >> version.txt
+      - name: Upload version file
+        uses: actions/upload-artifact@v2
+        with:
+          name: node-version-${{ matrix.node-version }}
+          path: version.txt
+
+  gather-results:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all version files
+        uses: actions/download-artifact@v2
+        with:
+          name: node-version-*
+          path: ./artifacts
+      - name: Aggregate results
+        run: |
+          echo "Node.js versions used in build:"
+          for file in ./artifacts/*; do
+            cat $file
+          done
+      - name: Deploy (example step)
+        run: echo "Deploying application with the aggregated results..."
