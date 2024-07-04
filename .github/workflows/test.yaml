@@ -27,7 +27,7 @@ jobs:
       - name: Set matrix from input
         id: set-matrix
         run: |
-          INPUT="${{ github.event.inputs.environment }}"
+          INPUT="${{ github.event.inputs.environments }}"
           INPUT="${INPUT%,}"
           JSON_ARRAY="\"${INPUT//, /\",\"}\""
           echo "matrix=[$JSON_ARRAY]" >> $GITHUB_OUTPUT
@@ -50,7 +50,7 @@ jobs:
       fail-fast: false
       matrix:
         environment: ${{ fromJson(needs.setup.outputs.matrix) }}
-        role: ${{ needs.setup.outputs.role }}
+        role: ${{ fromJson(needs.setup.outputs.role) }}
     steps:
       - name: Build and Deploy
         run: |
