@@ -40,14 +40,15 @@ jobs:
   build:
     needs: setup
     runs-on: ${{ inputs.runner }}
+    env:
+      ROLE: ${{ needs.setup.outputs.role }}  # Set the role as an environment variable
     strategy:
       fail-fast: false
       matrix:
         environment: ${{ fromJson(needs.setup.outputs.matrix) }}
-        role: ${{ needs.setup.outputs.role }}  # Removed fromJson since role is a single string
     steps:
       - name: Build and Deploy
         run: |
-          echo "Deploying to environment: ${{ matrix.environment }} with role: ${{ matrix.role }}"
+          echo "Deploying to environment: ${{ matrix.environment }} with role: $ENV{ROLE}"
 
 
