@@ -12,20 +12,35 @@ on:
         required: true
         type: string
         default: ubuntu-22.04
+      workspace:
+        required: true
+        type: string
+        description: 'GitHub Actions env'
 
 jobs:
   setup:
-    runs-on: ${{ inputs.runner }}
+    runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
+      role: ${{ steps.set-role.outputs.role }}
     steps:
       - name: Set matrix from input
         id: set-matrix
         run: |
-          INPUT="${{ github.event.inputs.environments }}"
-          INPUT="${INPUT%,}"  # Remove trailing comma if present
-          JSON_ARRAY="\"${INPUT//, /\",\"}\""  # Format as JSON array
-          echo "matrix=[$JSON_ARRAY]" >> $GITHUB_OUTPUT  # Use modern output method
+          INPUT="${{ github.event.inputs.environment }}"
+          INPUT="${INPUT%,}"
+          JSON_ARRAY="\"${INPUT//, /\",\"}\""
+          echo "matrix=[$JSON_ARRAY]" >> $GITHUB_OUTPUT
+          
+      - name: Set AWS Role Based on workspace
+        id: set-role
+        run: |
+          if [ "${{ github.event.inputs.workspace }}" == "dev" ]; then
+            echo "role=arn:aws:iam::account-id:role/role-dev" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event.inputs.workspace }}" == "stage" ]; then
+            echo "role=arn:aws:iam::account-id:role/role-stage" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event.inputs.workspace }}" == "prod" ]; then
+            echo "role=arn:aws:iam::account-id:role/role-prod" >> $GITHUB_OUTPUT
 
   build:
     needs: setup
@@ -34,36 +49,9 @@ jobs:
       fail-fast: false
       matrix:
         environment: ${{ fromJson(needs.setup.outputs.matrix) }}
-    outputs:
-      successful-envs: ${{ steps.collect-success.outputs.successful-envs }}
+        role: ${{ needs.setup.outputs.role }}
     steps:
-      - name: Check echo from matrix
-        run: echo "${{ matrix.environment }}"
-      - name: Simulate Task Success
+      - name: Build and Deploy
         run: |
-          if [[ "${{ matrix.environment }}" == "mona" || "${{ matrix.environment }}" == "sona" ]]; then
-            echo "\"${{ matrix.environment }}\"," >> successful-envs.txt
-          fi
-      - name: Collect Successful Environments
-        id: collect-success
-        run: |
-          if [ -f successful-envs.txt ]; then
-            SUCCESS_ENVS=$(cat successful-envs.txt | sed 's/,$//')  # Remove the last comma
-            echo "successful-envs=[$SUCCESS_ENVS]" >> $GITHUB_OUTPUT
-          else
-            echo "successful-envs=[]" >> $GITHUB_OUTPUT
-          fi 
+          echo "Deploying to environment: ${{ matrix.environment }} with role: ${{ matrix.role }}"
 
-  deploy:
-    needs: build
-    runs-on: ${{ inputs.runner }}
-    strategy:
-      fail-fast: false
-      matrix:
-        environment: ${{ fromJson(needs.build.outputs.successful-envs) }}
-    if: ${{ fromJson(needs.build.outputs.successful-envs) != '[]' }}
-    steps:
-      - name: Deploy for Successful Environments
-        run: |
-          echo "Deploying to environment: ${{ matrix.environment }}"
-          # Insert deployment commands here
