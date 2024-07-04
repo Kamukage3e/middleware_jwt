@@ -41,6 +41,7 @@ jobs:
             echo "role=arn:aws:iam::account-id:role/role-stage" >> $GITHUB_OUTPUT
           elif [ "${{ github.event.inputs.workspace }}" == "prod" ]; then
             echo "role=arn:aws:iam::account-id:role/role-prod" >> $GITHUB_OUTPUT
+          fi
 
   build:
     needs: setup
