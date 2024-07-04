@@ -31,17 +31,11 @@ jobs:
           INPUT="${INPUT%,}"
           JSON_ARRAY="\"${INPUT//, /\",\"}\""
           echo "matrix=[$JSON_ARRAY]" >> $GITHUB_OUTPUT
-          
       - name: Set AWS Role Based on workspace
         id: set-role
         run: |
-          if [ "${{ github.event.inputs.workspace }}" == "dev" ]; then
-            echo "role=arn:aws:iam::account-id:role/role-dev" >> $GITHUB_OUTPUT
-          elif [ "${{ github.event.inputs.workspace }}" == "stage" ]; then
-            echo "role=arn:aws:iam::account-id:role/role-stage" >> $GITHUB_OUTPUT
-          elif [ "${{ github.event.inputs.workspace }}" == "prod" ]; then
-            echo "role=arn:aws:iam::account-id:role/role-prod" >> $GITHUB_OUTPUT
-          fi
+          ROLE="arn:aws:iam::account-id:role/role-${{ github.event.inputs.workspace }}"
+          echo "role=$ROLE" >> $GITHUB_OUTPUT  # Output the role directly without JSON array brackets
 
   build:
     needs: setup
@@ -50,9 +44,10 @@ jobs:
       fail-fast: false
       matrix:
         environment: ${{ fromJson(needs.setup.outputs.matrix) }}
-        role: ${{ fromJson(needs.setup.outputs.role) }}
+        role: ${{ needs.setup.outputs.role }}  # Removed fromJson since role is a single string
     steps:
       - name: Build and Deploy
         run: |
           echo "Deploying to environment: ${{ matrix.environment }} with role: ${{ matrix.role }}"
+
 
